@@ -1,0 +1,70 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="小码农,,,"><title>rabbitmq延迟队列的实践 | 小贤的博客</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.1/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.1/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.1/jquery.min.js"></script><link rel="icon" mask="" sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"><script type="text/javascript" src="//lib.baomitu.com/clipboard.js/2.0.4/clipboard.min.js"></script><script type="text/javascript" src="//lib.baomitu.com/toastr.js/2.1.4/toastr.min.js"></script><link rel="stylesheet" href="//lib.baomitu.com/toastr.js/2.1.4/toastr.min.css"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">rabbitmq延迟队列的实践</h1><a id="logo" href="/.">小贤的博客</a><p class="description"></p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">rabbitmq延迟队列的实践</h1><div class="post-meta">2018-11-04</div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#延迟队列使用场景"><span class="toc-number">1.</span> <span class="toc-text">延迟队列使用场景</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#rabbitmq延迟队列实现方法"><span class="toc-number">2.</span> <span class="toc-text">rabbitmq延迟队列实现方法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#安装插件的方式实现"><span class="toc-number">2.1.</span> <span class="toc-text">安装插件的方式实现</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#TTL-DLX的方式实现"><span class="toc-number">2.2.</span> <span class="toc-text">TTL + DLX的方式实现</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Q-amp-A"><span class="toc-number">3.</span> <span class="toc-text">Q&amp;A</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考"><span class="toc-number">4.</span> <span class="toc-text">参考</span></a></li></ol></div></div><div class="post-content"><h2 id="延迟队列使用场景"><a href="#延迟队列使用场景" class="headerlink" title="延迟队列使用场景"></a>延迟队列使用场景</h2><ul>
+<li>12306平台订票，旅客提交订单后需要在30分钟内付款完成订单，否则要将锁定的座位解锁让其它旅客重新购买。</li>
+<li>客户购买商品后,系统根据购买信息延迟下发商品满意度的问卷给客户。</li>
+</ul>
+<h2 id="rabbitmq延迟队列实现方法"><a href="#rabbitmq延迟队列实现方法" class="headerlink" title="rabbitmq延迟队列实现方法"></a>rabbitmq延迟队列实现方法</h2><ul>
+<li>rabbitmq官方博客介绍的使用延迟队列插件的方式来实现延迟队列。</li>
+<li>rabbitmq官方扩展中介绍的TTL (time to live) + DLX(Dead Letter Exchanges)的特性结合也可以实现延迟队列。</li>
+</ul>
+<h3 id="安装插件的方式实现"><a href="#安装插件的方式实现" class="headerlink" title="安装插件的方式实现"></a>安装插件的方式实现</h3><ul>
+<li>进入<a href="http://www.rabbitmq.com/community-plugins.html" target="_blank" rel="noopener">官方社区插件下载页</a>找到<code>rabbitmq_delayed_message_exchange</code>下载适用于RabbitMQ安装的相应.ez文件。将插件复制到RabbitMQ的插件文件夹中</li>
+<li><p>进入rabbitmq的sbin目录下执行以下命令启用</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rabbitmq-plugins enable rabbitmq_delayed_message_exchange</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>声明一个exchange</p>
+<ul>
+<li><p>通过代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Map&lt;String, Object&gt; args = new HashMap&lt;String, Object&gt;();</span><br><span class="line">args.put(&quot;x-delayed-type&quot;, &quot;direct&quot;);</span><br><span class="line">channel.exchangeDeclare(&quot;my-exchange&quot;, &quot;x-delayed-message&quot;, true, false, args);//设置类型为“x-delayed-message”</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>通过web管理界面配置exchange也可以</p>
+</li>
+</ul>
+</li>
+<li>新增一个队列<code>my-delay-queue</code>将<code>my-exchange</code>绑定到该队列上面</li>
+<li><p>发布一个延迟消息</p>
+<ul>
+<li>发布延迟队列的配置代码需要指定<code>x-delay</code><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">byte[] messageBodyBytes = &quot;delayed payload&quot;.getBytes();</span><br><span class="line">AMQP.BasicProperties.Builder props = new AMQP.BasicProperties.Builder();</span><br><span class="line">headers = new HashMap&lt;String, Object&gt;();</span><br><span class="line">headers.put(&quot;x-delay&quot;, 5000);//延迟5秒</span><br><span class="line">props.headers(headers);</span><br><span class="line">channel.basicPublish(&quot;my-exchange&quot;, &quot;&quot;, props.build(), messageBodyBytes);</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+</li>
+<li><p>启动一个消费者消费队列<code>my-delay-queue</code>验证</p>
+</li>
+</ul>
+<h3 id="TTL-DLX的方式实现"><a href="#TTL-DLX的方式实现" class="headerlink" title="TTL + DLX的方式实现"></a>TTL + DLX的方式实现</h3><ul>
+<li><p>简要的流程图</p>
+<ul>
+<li><img src="/2018/11/04/rabbitmq延迟队列的实践/message.png" alt="消息轮转图"></li>
+</ul>
+</li>
+<li><p>根据单条消息自定义延迟的方式(<strong>注意:如果前一条数据设置的超时时间大于后面的数据超时时间，那么前一条必须变更为死信后，后面的消息才会变更为死信。。相当恶心</strong>)</p>
+<ul>
+<li>定义cache_exchange、定义cache_queue队列指定参数x-dead-letter-exchange为delay_exchange,该参数的含义是如果队列中有死信消息则往<code>delay_exchange</code>发，最后将定义cache_exchange绑定到cache_queue</li>
+<li>发送时指定单条消息的失效时间，失效时间一过消息将变为死信<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">byte[] messageBodyBytes = &quot;Hello, world!&quot;.getBytes();</span><br><span class="line">AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()</span><br><span class="line">                                 .expiration(&quot;60000&quot;)</span><br><span class="line">                                 .build();</span><br><span class="line">channel.basicPublish(&quot;cache_exchange&quot;, &quot;delay&quot;, properties, messageBodyBytes);</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+</li>
+<li><p>根据队列定义延迟的方式</p>
+<ul>
+<li>创建cache_exchange、创建cache_queue队列指定参数x-message-ttl为60000，最后将定义cache_exchange绑定到cache_queue(创建可以通过web管理界面进行)</li>
+<li><p>通过代码定义</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Map &lt;String，Object&gt; args = new HashMap &lt;String，Object&gt;（）;</span><br><span class="line">args.put（“x-message-ttl”，60000）;</span><br><span class="line">channel.queueDeclare（“myqueue”，false，false，false，args）;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>经过如上配置发送往cache_exchange转发到cache_queue的消息60s后将会变为死信。</p>
+</li>
+</ul>
+</li>
+<li><p>cache_queue中的死信会根据x-dead-letter-exchange的参数配置往delay_exchange发送。</p>
+</li>
+<li>最后消费delay_queue队列中的消息进行业务处理。delay_queue中的消息是经过延迟后获得的消息。</li>
+</ul>
+<h2 id="Q-amp-A"><a href="#Q-amp-A" class="headerlink" title="Q&amp;A"></a>Q&amp;A</h2><ul>
+<li>启用延迟队列插件未生效的原因： Changes will take effect at broker restart;</li>
+<li>解决办法:重启rabbitmq服务<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">rabbitmq-server -detached</span><br><span class="line">systemctl restart rabbitmq-server.service</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><ul>
+<li><a href="https://www.rabbitmq.com/ttl.html" target="_blank" rel="noopener">Time-To-Live Extensions</a></li>
+<li><a href="https://www.rabbitmq.com/dlx.html" target="_blank" rel="noopener">Dead Letter Exchanges</a></li>
+<li><a href="https://www.rabbitmq.com/blog/2015/04/16/scheduling-messages-with-rabbitmq/" target="_blank" rel="noopener">Scheduling Messages with RabbitMQ</a></li>
+</ul>
+</div><div class="tags"><a href="/tags/rabbitmq/"><i class="fa fa-tag"></i>rabbitmq</a></div><div class="post-nav"><a class="pre" href="/2019/01/20/lua+kafka+nginx采集nginx日志/">lua+kafka+nginx采集nginx日志</a><a class="next" href="/2018/09/28/git使用入门/">git使用入门</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://yoursite.com"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/kafka/" style="font-size: 15px;">kafka</a> <a href="/tags/rabbitmq/" style="font-size: 15px;">rabbitmq</a> <a href="/tags/mysql/" style="font-size: 15px;">mysql</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2019/01/20/lua+kafka+nginx采集nginx日志/">lua+kafka+nginx采集nginx日志</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/11/04/rabbitmq延迟队列的实践/">rabbitmq延迟队列的实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/28/git使用入门/">git使用入门</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/04/29/mysqlBackUp/">mysql复制</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="http://www.example1.com/" title="site-name1" target="_blank">site-name1</a><ul></ul><a href="http://www.example2.com/" title="site-name2" target="_blank">site-name2</a><ul></ul><a href="http://www.example3.com/" title="site-name3" target="_blank">site-name3</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2020 <a href="/." rel="nofollow">小贤的博客.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/javascript" src="/js/copycode.js" successtext="复制成功!"></script><link rel="stylesheet" type="text/css" href="/css/copycode.css"><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script></div></body></html>
