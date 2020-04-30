@@ -1,0 +1,159 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.8.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="小码农,,,"><title>JAVA8特性初探 | 小贤的博客</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.1/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.1/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.1/jquery.min.js"></script><link rel="icon" mask="" sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"><link rel="alternate" type="application/atom+xml" href="/atom.xml"><script type="text/javascript" src="//lib.baomitu.com/clipboard.js/2.0.4/clipboard.min.js"></script><script type="text/javascript" src="//lib.baomitu.com/toastr.js/2.1.4/toastr.min.js"></script><link rel="stylesheet" href="//lib.baomitu.com/toastr.js/2.1.4/toastr.min.css"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">JAVA8特性初探</h1><a id="logo" href="/.">小贤的博客</a><p class="description"></p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a><a href="/atom.xml"><i class="fa fa-rss"> 订阅</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">JAVA8特性初探</h1><div class="post-meta">2019-06-28</div><div class="clear"><div class="toc-article" id="toc"><div class="toc-title">文章目录</div><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#行为参数化传递代码"><span class="toc-number">1.</span> <span class="toc-text">行为参数化传递代码</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#lambda表达式-简洁的传递代码"><span class="toc-number">2.</span> <span class="toc-text">lambda表达式(简洁的传递代码)</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#函数式接口"><span class="toc-number">2.0.1.</span> <span class="toc-text">函数式接口</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#方法引用"><span class="toc-number">2.0.2.</span> <span class="toc-text">方法引用</span></a></li></ol></li></ol><li class="toc-item toc-level-1"><a class="toc-link" href="#函数式数据处理-流"><span class="toc-number">3.</span> <span class="toc-text">函数式数据处理(流)</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#引入流"><span class="toc-number">3.0.1.</span> <span class="toc-text">引入流</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#使用流收集数据"><span class="toc-number">3.0.2.</span> <span class="toc-text">使用流收集数据</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#并行数据处理"><span class="toc-number">3.0.3.</span> <span class="toc-text">并行数据处理</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#接口默认方法"><span class="toc-number">4.</span> <span class="toc-text">接口默认方法</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#用Optional取代null"><span class="toc-number">5.</span> <span class="toc-text">用Optional取代null</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#参考"><span class="toc-number">6.</span> <span class="toc-text">参考</span></a></li></div></div><div class="post-content"><ul>
+<li><a href="#lambda-base">行为参数化传递代码</a></li>
+<li><a href="#lambda">lambda表达式</a><ul>
+<li><a href="#method-interface">函数式接口</a></li>
+<li><a href="#method-ref">方法引用</a></li>
+</ul>
+</li>
+<li><a href="#stream-handle">函数式数据处理</a><ul>
+<li><a href="#stream-handle-advantage">引入流</a></li>
+<li><a href="#stream-handle-collection">使用流收集数据</a></li>
+<li><a href="#stream-parallel">并行数据处理</a></li>
+</ul>
+</li>
+<li><a href="#default-method">接口默认方法</a></li>
+<li><a href="#optional">用Optional取代null</a></li>
+<li><a href="#ref">参考</a></li>
+</ul>
+<p><a name="lambda-base"></a></p>
+<h1 id="行为参数化传递代码"><a href="#行为参数化传递代码" class="headerlink" title="行为参数化传递代码"></a>行为参数化传递代码</h1><ul>
+<li><p>1.8为啥会出现行为参数化传递代码？</p>
+<ul>
+<li>以前的实现方式死板、啰嗦。行为参数化传递代码更为简洁灵活</li>
+</ul>
+</li>
+<li><p>下面以筛选苹果为例看下引入<code>行为参数化传递代码</code>和未引入前的对吧。(苹果有颜色、重量属性)</p>
+</li>
+<li><p>筛选出绿色苹果</p>
+<ul>
+<li><p>1.8前老写法 </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> List&lt;Apple&gt; <span class="title">filterGreenApples</span><span class="params">(List&lt;Apple&gt; inventory)</span> </span>&#123;</span><br><span class="line">    List&lt;Apple&gt; result = <span class="keyword">new</span> ArrayList&lt;Apple&gt;();</span><br><span class="line">    <span class="keyword">for</span>(Apple apple: inventory)&#123;</span><br><span class="line">        <span class="keyword">if</span>( <span class="string">"green"</span>.equals(apple.getColor() ) &#123;</span><br><span class="line">            result.add(apple);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>需求变更筛选出红色的且重量大于150g的</p>
+</li>
+<li><p>为了兼容各种过滤进一步抽象</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//校验苹果是否符合条件的接口定义</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">ApplePredicate</span></span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">boolean</span> <span class="title">test</span> <span class="params">(Apple apple)</span></span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//过滤苹果的方法</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> List&lt;Apple&gt; <span class="title">filterApples</span><span class="params">(List&lt;Apple&gt; inventory, ApplePredicate p)</span></span>&#123;</span><br><span class="line">    List&lt;Apple&gt; result = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">    <span class="keyword">for</span>(Apple apple: inventory)&#123;</span><br><span class="line">        <span class="keyword">if</span>(p.test(apple))&#123;</span><br><span class="line">            result.add(apple);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//过滤的策略</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">AppleRedAndHeavyPredicate</span> <span class="keyword">implements</span> <span class="title">ApplePredicate</span></span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">test</span><span class="params">(Apple apple)</span></span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"red"</span>.equals(apple.getColor()) &amp;&amp; apple.getWeight() &gt; <span class="number">150</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+</li>
+<li><p>此时程序员想我去真恶心,如果每个过滤都要写一个实现类。然后它可能会用匿名类的方式来做。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Apple&gt; redApples = filterApples(inventory, <span class="keyword">new</span> ApplePredicate() &#123;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">test</span><span class="params">(Apple a)</span></span>&#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">"red"</span>.equals(a.getColor());</span><br><span class="line">    &#125;&#125;);</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>匿名类看起来已经是巅峰了，但是还是每次都得写接口模板<code>public boolean test(Apple a){...}</code>(冗余代码)</p>
+</li>
+<li><p>java8引入<code>行为参数化传递代码</code>可以这么写</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Apple&gt; redApples =</span><br><span class="line">filterApples(inventory, (Apple apple) -&gt; <span class="string">"red"</span>.equals(apple.getColor()));</span><br></pre></td></tr></table></figure>
+<ul>
+<li><p>针对<code>filterApples(inventory, (Apple apple) -&gt; &quot;red&quot;.equals(apple.getColor()));</code>如何理解行为参数化传递代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">(Apple apple) -&gt; &quot;red&quot;.equals(apple.getColor());//其实可以等价为一个值，作为一个值进行传递</span><br><span class="line">其实可以拆解为以下两句帮助理解</span><br><span class="line">ApplePredicate&lt;Apple&gt; predicate = (Apple apple) -&gt; &quot;red&quot;.equals(apple.getColor()); </span><br><span class="line">filterApples(inventory, predicate);</span><br><span class="line">理解了这个后就可以将你的行为根据需求而定参数化后传入filterApples方法中。</span><br></pre></td></tr></table></figure>
+<p><a name="lambda"></a></p>
+</li>
+</ul>
+</li>
+</ul>
+<h1 id="lambda表达式-简洁的传递代码"><a href="#lambda表达式-简洁的传递代码" class="headerlink" title="lambda表达式(简洁的传递代码)"></a>lambda表达式(简洁的传递代码)</h1><ul>
+<li><p>lambda表达式可以理解为可传递的匿名函数的一种方式:它没有名称，但是有参数列表、函数主体、返回类型，还可能有抛出的异常列表。</p>
+<ul>
+<li><p><img src="/2019/06/28/java8特性初探/exceptionImage.png" alt=""></p>
+</li>
+<li><p>lambda的基本语法是</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">(parameters) -&gt; expression </span><br><span class="line">(parameters) -&gt; &#123; statements; &#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>在何处可以使用lambda表达式，可以在函数式接口上使用lambda表达式</p>
+</li>
+</ul>
+</li>
+</ul>
+<p><a name="method-interface"></a> </p>
+<h3 id="函数式接口"><a href="#函数式接口" class="headerlink" title="函数式接口"></a>函数式接口</h3><ul>
+<li><p>只定义一个抽象方法的接口</p>
+</li>
+<li><p>抽象方法的签名可以描述lambda表达式的签名，抽象方法的签名 称为函数描述符。</p>
+</li>
+<li><p>java8内置常用的函数式接口</p>
+<p>| 函数接口      | 抽象方法          | 函数描述符 | lambda示例                         |<br>| ————- | —————– | ———- | ———————————- |<br>| Predicate<t>  | boolean test(T t) | T-&gt;boolean | (String str)-&gt; str.equal(“engage”) |<br>| Consumer<t>   | void accept(T t)  | T-&gt;void    | a -&gt; System.out.print(a)           |<br>| Function&lt;T,R&gt; | R apply(T t)      | T-&gt;R       | (Integer a) -&gt; a &lt;&lt; 2              |<br>| Supplier<t>   | T get()           | ()-&gt;T      |                                    |</t></t></t></p>
+</li>
+</ul>
+<p><a name="method-ref"></a>       </p>
+<h3 id="方法引用"><a href="#方法引用" class="headerlink" title="方法引用"></a>方法引用</h3><ul>
+<li><p>重复的使用现有方法的定义，并像lambda一样传递他们</p>
+</li>
+<li><p>方法引用替代lambda表达式 </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//使用lambda</span></span><br><span class="line">inventory.sort((Apple a1, Apple a2) -&gt; a1.getWeight().compareTo(a2.getWeight()));</span><br><span class="line"><span class="comment">//使用方法引用</span></span><br><span class="line">inventory.sort(comparing(Apple::getWeight));</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p><a name="stream-handle"></a></p>
+<h1 id="函数式数据处理-流"><a href="#函数式数据处理-流" class="headerlink" title="函数式数据处理(流)"></a>函数式数据处理(流)</h1><p><a name="stream-handle-advantage"></a></p>
+<h3 id="引入流"><a href="#引入流" class="headerlink" title="引入流"></a>引入流</h3><ul>
+<li><p>流是JAVA api的新成员，允许以声明式的方式处理数据集合，此外它也可以并行处理数据而无需写多线程的代码。</p>
+</li>
+<li><p>有一个从菜单中返回低热量(卡路里小于400)的菜并按照卡路里排序的需求，下面看使用流和不使用流的区别。</p>
+<ul>
+<li><p>没有引入流1.8前的实现(缺点:代码量太多,很多过程变量，java程序员太难了~~) </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Dish&gt; lowCaloricDishes = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line"><span class="comment">//1.筛选低热量的菜</span></span><br><span class="line"><span class="keyword">for</span>(Dish d: menu)&#123;</span><br><span class="line">    <span class="keyword">if</span>(d.getCalories() &lt; <span class="number">400</span>)&#123;</span><br><span class="line">        lowCaloricDishes.add(d);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//2.按热量排序</span></span><br><span class="line">Collections.sort(lowCaloricDishes, <span class="keyword">new</span> Comparator&lt;Dish&gt;() &#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">compare</span><span class="params">(Dish d1, Dish d2)</span></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> Integer.compare(d1.getCalories(), d2.getCalories());&#125;</span><br><span class="line">&#125;);</span><br><span class="line">List&lt;String&gt; lowCaloricDishesName = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line"><span class="keyword">for</span>(Dish d: lowCaloricDishes)&#123;</span><br><span class="line">    lowCaloricDishesName.add(d.getName());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><p>java1.8引入流操作的实现(优点:简洁、可读性高) </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">List&lt;String&gt; lowCaloricDishesName =</span><br><span class="line">menu.stream() <span class="comment">//1.获取流</span></span><br><span class="line">.filter(d -&gt; d.getCalories() &lt; <span class="number">400</span>) <span class="comment">//2.中间操作</span></span><br><span class="line">.sorted(comparing(Dish::getCalories)) <span class="comment">//2.中间操作</span></span><br><span class="line">.map(Dish::getName) <span class="comment">//2.中间操作</span></span><br><span class="line">.collect(toList()); <span class="comment">//3.终端操作</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>1.8流操作的过程如下图:流的操作主要分中间操作和终端操作</p>
+<ul>
+<li><img src="/2019/06/28/java8特性初探/image.png" alt="流操作图"></li>
+</ul>
+</li>
+<li><p>中间操作列表</p>
+<p>| 操作 | 返回类型| 操作参数 | 函数描述符<br>| —— | —— | —— | ——<br>| filter | Stream<t> |Predicate<t>|T -&gt; boolean|<br>| sorted | Stream<t> |Comparator<t>|(T,T)-&gt;int|<br>| distinct | Stream<t> |-|-|<br>| map | Stream<r> |Function&lt;T, R&gt;|T-&gt;R|<br>| limit | Stream<t> |-|-|</t></r></t></t></t></t></t></p>
+</li>
+<li><p>终端操作列表</p>
+<p>| 操作 | 目的|<br>| —— | ——<br>| forEach | 消费流中每一个元素，无返回<br>| count | 返回流中元素个数<br>| collect | 把流规约成集合,map,integer返回 </p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p><a name="stream-handle-collection"></a></p>
+<h3 id="使用流收集数据"><a href="#使用流收集数据" class="headerlink" title="使用流收集数据"></a>使用流收集数据</h3><ul>
+<li><p>分组</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//根据粉丝状态对粉丝分组</span></span><br><span class="line">Map&lt;String, List&lt;WcOaFollower&gt;&gt; followerByStatus = followers</span><br><span class="line">           .stream().collect(groupingBy(WcOaFollower::getStatus));</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>分区是分组的一种特殊情况</p>
+</li>
+<li><p>规约&amp;汇总</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">获取菜单中所有菜的卡路里总和。</span><br><span class="line"><span class="keyword">int</span> totalCalories = menu.stream().collect(reducing(<span class="number">0</span>,Dish::getCalories, (i, j) -&gt; i + j));</span><br><span class="line">reducing中三个参数解析:</span><br><span class="line"><span class="number">1</span>.规约操作的起始值</span><br><span class="line"><span class="number">2</span>.将菜映射成卡路里热量<span class="keyword">int</span></span><br><span class="line"><span class="number">3</span>.BinaryOperator类型的参数,在这是对两个<span class="keyword">int</span>进行求和</span><br><span class="line">上面的写法也可以替换成</span><br><span class="line"><span class="keyword">int</span> totalCalories = menu.stream().map(Dish::getCalories).collect(reducing(<span class="number">0</span>, (i, j) -&gt; i + j));</span><br><span class="line"><span class="keyword">int</span> totalCalories = menu.stream().map(Dish::getCalories).reduce(<span class="number">0</span>, (i, j) -&gt; i + j);</span><br></pre></td></tr></table></figure>
+<p><a name="stream-parallel"></a></p>
+</li>
+</ul>
+<h3 id="并行数据处理"><a href="#并行数据处理" class="headerlink" title="并行数据处理"></a>并行数据处理</h3><ul>
+<li><p>将普通的串行流转为并行流<code>parallel()</code></p>
+</li>
+<li><p>代码示例</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">long</span> start = System.currentTimeMillis();</span><br><span class="line"><span class="keyword">long</span> s2 = LongStream.range(<span class="number">0L</span>, <span class="number">1000000000L</span>).parallel().reduce(<span class="number">0L</span>, (i, j) -&gt; i + j);</span><br><span class="line"><span class="keyword">long</span> end1 = System.currentTimeMillis();</span><br><span class="line">System.out.println(<span class="string">"spend time"</span> + (end1 - start) + <span class="string">"ms"</span> + <span class="string">"  total:"</span> + s2);<span class="comment">//并行花费254ms</span></span><br><span class="line"><span class="keyword">long</span> su = LongStream.range(<span class="number">0L</span>, <span class="number">1000000000L</span>).reduce(<span class="number">0L</span>, (i, j) -&gt; i + j);</span><br><span class="line"><span class="keyword">long</span> end2 = System.currentTimeMillis();</span><br><span class="line">System.out.println(<span class="string">"spend time"</span> + (end2 - end1)<span class="string">"ms"</span> + <span class="string">"  total:"</span> + su);<span class="comment">//串行花费1675ms</span></span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p><a name="default-method"></a></p>
+<h1 id="接口默认方法"><a href="#接口默认方法" class="headerlink" title="接口默认方法"></a>接口默认方法</h1><ul>
+<li><p>为啥需要接口默认方法?</p>
+<ul>
+<li>一旦接口发生变化,实现这些接口的类往往也需要一并更新，需要新增方法的实现才能去适配接口的变化。默认方法的出现可以解决这个到处改实现类里具体方法的实现。</li>
+<li>帮助接口设计者向兼容的方式演进接口(比如jdk1.7升级到jdk1.8)</li>
+</ul>
+</li>
+<li><p>使用方式</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Sized</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">int</span> <span class="title">size</span><span class="params">()</span></span>;</span><br><span class="line">    <span class="function"><span class="keyword">default</span> <span class="keyword">boolean</span> <span class="title">isEmpty</span><span class="params">(BaseQo qo)</span></span>&#123;</span><br><span class="line">        <span class="keyword">return</span> size() == <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//这样任何实现了Sized接口的类都会自动继承isEmpty的实现</span></span><br></pre></td></tr></table></figure>
+</li>
+<li><p>应用场景:</p>
+<ul>
+<li>可以在curd的接口方法里引入默认函数，由默认函数去做缓存以及移除缓存等操作。 </li>
+</ul>
+</li>
+</ul>
+<p><a name="optional"></a></p>
+<h1 id="用Optional取代null"><a href="#用Optional取代null" class="headerlink" title="用Optional取代null"></a>用Optional取代null</h1><ul>
+<li>它的出现就是为了对抗空指针异常</li>
+<li>还没有实战心得。。</li>
+</ul>
+<p><a name="ref"></a></p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><ul>
+<li>java8 实战(java 8 in action)</li>
+</ul>
+</div><div class="tags"><a href="/tags/java/"><i class="fa fa-tag"></i>java</a></div><div class="post-nav"><a class="pre" href="/2020/04/29/mysql备份/">mysql复制</a><a class="next" href="/2019/01/20/lua+kafka+nginx采集nginx日志/">lua+kafka+nginx采集nginx日志</a></div></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://yoursite.com"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/工具/" style="font-size: 15px;">工具</a> <a href="/tags/kafka/" style="font-size: 15px;">kafka</a> <a href="/tags/rabbitmq/" style="font-size: 15px;">rabbitmq</a> <a href="/tags/java/" style="font-size: 15px;">java</a> <a href="/tags/mysql/" style="font-size: 15px;">mysql</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2020/04/29/mysql备份/">mysql复制</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/06/28/java8特性初探/">JAVA8特性初探</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/01/20/lua+kafka+nginx采集nginx日志/">lua+kafka+nginx采集nginx日志</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/11/04/rabbitmq延迟队列的实践/">rabbitmq延迟队列的实践</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/09/28/git使用入门/">git使用入门</a></li></ul></div><div class="widget"><div class="widget-title"><i class="fa fa-external-link"> 友情链接</i></div><ul></ul><a href="https://jsonlisky.github.io" title="小贤的blog" target="_blank">小贤的blog</a></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2020 <a href="/." rel="nofollow">小贤的博客.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/javascript" src="/js/copycode.js" successtext="复制成功!"></script><link rel="stylesheet" type="text/css" href="/css/copycode.css"><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script></div></body></html>
